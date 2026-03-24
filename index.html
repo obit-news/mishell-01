@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nexus Sync | Workspace</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Estilos Personalizados -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 text-slate-800 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]">
+
+  <div id="toast-container" class="fixed bottom-5 right-5 z-[150] flex flex-col gap-2"></div>
+
+  <!-- MODAL DE IMAGEN -->
+  <div id="image-modal" class="fixed inset-0 z-[120] hidden flex items-center justify-center p-4 bg-slate-900/90 transition-opacity">
+    <div class="absolute inset-0" onclick="cerrarModal()"></div>
+    <div class="relative bg-white rounded-3xl overflow-hidden shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col fade-in">
+      <div class="p-4 border-b flex justify-between items-center">
+        <h3 id="modal-title" class="font-bold text-slate-700 truncate">Vista Previa</h3>
+        <button onclick="cerrarModal()" class="w-10 h-10 hover:bg-slate-100 rounded-full"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="overflow-auto bg-slate-100 flex items-center justify-center p-4">
+        <img id="modal-img" src="" class="max-w-full h-auto rounded-lg shadow-md">
+      </div>
+      <div class="p-4 flex justify-end">
+        <button id="modal-copy-btn" class="bg-blue-600 text-white px-6 py-2 rounded-xl font-bold text-sm hover:bg-blue-700 transition-all">
+          <i class="fas fa-copy mr-2"></i>Copiar Enlace
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- VISTA LOGIN -->
+  <div id="login-view" class="bg-white/90 backdrop-blur-xl p-8 rounded-3xl shadow-2xl max-w-md w-full hidden border border-slate-100 fade-in">
+    <div class="text-center mb-8">
+      <div class="bg-blue-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 text-white text-2xl shadow-lg">
+        <i class="fas fa-layer-group"></i>
+      </div>
+      <h1 class="text-3xl font-extrabold text-slate-900">Nexus <span class="text-blue-600">Sync</span></h1>
+    </div>
+    <div class="space-y-4">
+      <input type="text" id="user" class="w-full px-4 py-3 bg-slate-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-medium" placeholder="Usuario">
+      <input type="password" id="pass" class="w-full px-4 py-3 bg-slate-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-medium" placeholder="Contraseña">
+      <button onclick="iniciarSesion()" id="btn-login" class="w-full bg-slate-900 text-white font-bold py-3.5 rounded-xl hover:bg-blue-700 transition-all flex items-center justify-center gap-2">
+        Ingresar <i class="fas fa-arrow-right"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- VISTA PRINCIPAL -->
+  <div id="app-view" class="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl max-w-4xl w-full hidden overflow-hidden border border-slate-100 fade-in flex flex-col h-[90vh]">
+    <div class="p-6 border-b flex justify-between items-center bg-white">
+      <div class="flex items-center gap-3">
+        <div class="bg-blue-600 text-white p-2.5 rounded-xl"><i class="fas fa-cloud-arrow-up"></i></div>
+        <h1 class="text-xl font-extrabold">Nexus Sync</h1>
+      </div>
+      <div class="flex items-center gap-4">
+        <span id="user-display" class="text-sm font-bold bg-slate-100 px-4 py-2 rounded-xl border border-slate-200">---</span>
+        <button onclick="cerrarSesion()" class="text-slate-400 hover:text-red-500 transition-colors w-10 h-10 hover:bg-red-50 rounded-full flex items-center justify-center"><i class="fas fa-power-off text-lg"></i></button>
+      </div>
+    </div>
+
+    <div class="flex border-b bg-slate-50/50">
+      <button onclick="cambiarTab('upload-tab')" id="tab-u" class="flex-1 py-4 font-bold text-blue-600 border-b-2 border-blue-600 transition-colors"><i class="fas fa-cloud-upload-alt mr-2"></i>Subir</button>
+      <button onclick="cambiarTab('history-tab')" id="tab-h" class="flex-1 py-4 font-bold text-slate-400 border-b-2 border-transparent hover:text-slate-600 transition-colors"><i class="fas fa-database mr-2"></i>Registros</button>
+    </div>
+
+    <div class="p-6 overflow-y-auto custom-scrollbar flex-1 relative">
+      <!-- TAB SUBIDA -->
+      <div id="upload-tab" class="space-y-6">
+        <div id="drop-zone" class="border-2 border-dashed border-slate-300 rounded-3xl p-10 text-center bg-slate-50 hover:bg-blue-50/50 transition-all relative flex flex-col items-center justify-center min-h-[200px]">
+          <!-- Se limita la selección de archivos exclusivamente a imágenes -->
+          <input type="file" id="file-input" multiple accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="manejarArchivos(event)">
+          <i class="fas fa-images text-4xl text-blue-500 mb-4"></i>
+          <h3 class="text-lg font-bold">Haz clic o arrastra imágenes aquí</h3>
+          <p class="text-xs text-slate-500 font-medium mt-1">Soporta JPG, PNG, GIF, WEBP</p>
+          <div id="file-count" class="mt-4 hidden bg-blue-600 text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-sm">
+            <span id="file-count-text">0</span> imágenes acumuladas
+          </div>
+        </div>
+
+        <div id="pending-list" class="space-y-2 max-h-40 overflow-y-auto custom-scrollbar"></div>
+
+        <button onclick="procesarSubida()" id="btn-upload" class="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg hover:bg-blue-700 disabled:bg-slate-300 transition-all flex items-center justify-center gap-2">
+          <i class="fas fa-bolt"></i> <span>Comenzar Subida</span>
+        </button>
+
+        <div id="status-area" class="hidden fade-in">
+          <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden mb-4 border border-slate-200"><div id="progress-bar" class="bg-blue-600 h-full w-0 transition-all"></div></div>
+          <div id="results-list" class="space-y-2"></div>
+        </div>
+      </div>
+
+      <!-- TAB HISTORIAL -->
+      <div id="history-tab" class="hidden">
+        <div id="history-loading" class="space-y-3 hidden">
+          <div class="h-20 rounded-2xl skeleton"></div>
+          <div class="h-20 rounded-2xl skeleton"></div>
+          <div class="h-20 rounded-2xl skeleton"></div>
+        </div>
+        <div id="history-list" class="space-y-3 pb-6"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lógica de la aplicación -->
+  <script src="script.js"></script>
+</body>
+</html>
